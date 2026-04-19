@@ -905,6 +905,46 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
+    /* ── Edit mode ── */
+    .edit-toggle-btn {
+      padding: 3px 10px;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--fm);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .edit-toggle-btn:hover { border-color: var(--signal); color: var(--signal); }
+    .edit-toggle-btn.active { border-color: var(--signal); color: var(--signal); background: var(--signal-dim); }
+    .ic-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--r);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 4px 8px;
+      box-sizing: border-box;
+      transition: border-color 0.12s;
+    }
+    .ic-input:focus { outline: none; border-color: var(--signal); }
+    .ic-input-sm { font-size: 11px; padding: 3px 6px; }
+    .ic-input[type="date"] { color-scheme: dark; }
+    .ic-check-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-family: var(--fm); font-size: 11px; color: var(--text-mid); }
+
+    /* ── Kanban DnD ── */
+    .kanban-card { user-select: none; }
+    .kanban-card.dragging { opacity: 0.35; }
+    .kanban-col.drag-over { box-shadow: 0 0 0 2px var(--signal); background: var(--signal-dim); }
+    .kanban-col.drag-over .kanban-head { background: var(--signal-dim); }
+
     /* ── Responsive ── */
     @media (max-width: 900px) {
       .sidebar { display: none; }
@@ -1208,7 +1248,11 @@ function FilterBar({ f, setF, all, view, setView }) {
 }
 
 // ── KanbanView ─────────────────────────────────────────────────────────────
-function KanbanView({ programs, onSelect }) {
+function KanbanView({ programs, onSelect, onStatusChange }) {
+  const [dragOver,    setDragOver]    = useState(null);
+  const [draggingId,  setDraggingId]  = useState(null);
+  const didDrag = useRef(false);
+
   const cols = [
     { key:'not-yet',  label:'Not Yet',  color:'#3a3a3a' },
     { key:'filling',  label:'Filling',  color:'var(--yellow)' },
@@ -1219,10 +1263,42 @@ function KanbanView({ programs, onSelect }) {
   ];
   const byStatus = {};
   cols.forEach(c => { byStatus[c.key] = programs.filter(p => p.status === c.key); });
+
+  const onDragStart = (e, id) => {
+    didDrag.current = true;
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(id));
+  };
+  const onDragEnd = () => {
+    setDraggingId(null);
+    setDragOver(null);
+    setTimeout(() => { didDrag.current = false; }, 50);
+  };
+  const onDragOver = (e, key) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOver !== key) setDragOver(key);
+  };
+  const onDragLeave = (e, key) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(d => d === key ? null : d);
+  };
+  const onDrop = (e, key) => {
+    e.preventDefault();
+    const id = Number(e.dataTransfer.getData('text/plain'));
+    setDragOver(null);
+    setDraggingId(null);
+    if (id && onStatusChange) onStatusChange(id, key);
+  };
+
   return html`
     <div class="kanban">
       ${cols.map(col => html`
-        <div key=${col.key} class="kanban-col">
+        <div key=${col.key}
+          class=${'kanban-col'+(dragOver===col.key?' drag-over':'')}
+          onDragOver=${e=>onDragOver(e,col.key)}
+          onDragLeave=${e=>onDragLeave(e,col.key)}
+          onDrop=${e=>onDrop(e,col.key)}>
           <div class="kanban-head" style=${{borderTop:'2px solid '+col.color}}>
             <span class="kanban-head-title" style=${{color:col.color}}>${col.label}</span>
             <span class="kanban-count">${byStatus[col.key].length}</span>
@@ -1231,7 +1307,12 @@ function KanbanView({ programs, onSelect }) {
             ${byStatus[col.key].length === 0
               ? html`<div style="font-family:var(--fm);font-size:10px;color:var(--text-dim);padding:8px 4px;text-align:center">Empty</div>`
               : byStatus[col.key].map(p => html`
-                <div key=${p.id} class="kanban-card" onClick=${()=>onSelect(p.id)}>
+                <div key=${p.id}
+                  class=${'kanban-card'+(draggingId===p.id?' dragging':'')}
+                  draggable=${true}
+                  onDragStart=${e=>onDragStart(e,p.id)}
+                  onDragEnd=${onDragEnd}
+                  onClick=${()=>{ if(!didDrag.current) onSelect(p.id); }}>
                   <div class="kc-name">${p.name.length>40?p.name.slice(0,40)+'…':p.name}</div>
                   <div class="kc-univ">${p.university}</div>
                   <div class="kc-meta">
@@ -1319,6 +1400,18 @@ function ProgramsTab({ onSelect }) {
     setList(l);
   }, [all, f]);
 
+  const handleStatusChange = useCallback(async (id, newStatus) => {
+    const original = all.find(p => p.id === id);
+    if (!original || original.status === newStatus) return;
+    setAll(prev => prev.map(p => p.id === id ? {...p, status: newStatus} : p));
+    try {
+      const d = await api(`/api/programs/${id}`, { method:'PATCH', body:JSON.stringify({ status: newStatus }) });
+      setAll(prev => prev.map(p => p.id === id ? d.program : p));
+    } catch {
+      setAll(prev => prev.map(p => p.id === id ? original : p));
+    }
+  }, [all]);
+
   return html`
     <div>
       <div class="page-head">
@@ -1330,26 +1423,49 @@ function ProgramsTab({ onSelect }) {
       ${loading
         ? html`<div class="empty"><span class="spin" style="font-size:28px;color:var(--text-dim)">↻</span></div>`
         : view==='kanban'
-          ? html`<${KanbanView} programs=${list} onSelect=${onSelect} />`
+          ? html`<${KanbanView} programs=${list} onSelect=${onSelect} onStatusChange=${handleStatusChange} />`
           : html`<${TableView} programs=${list} onSelect=${onSelect} />`}
     </div>`;
 }
 
 // ── DetailPanel ────────────────────────────────────────────────────────────
 function DetailPanel({ programId, onClose, onSaved }) {
-  const [prog,    setProg]    = useState(null);
-  const [status,  setStatus]  = useState('');
-  const [notes,   setNotes]   = useState('');
-  const [saving,  setSaving]  = useState(false);
-  const [toast,   setToast]   = useState(null);
-  const [letter,  setLetter]  = useState(null);
-  const [loadingL,setLoadingL]= useState(false);
-  const [scraping,setScraping]= useState(false);
+  const [prog,      setProg]      = useState(null);
+  const [status,    setStatus]    = useState('');
+  const [notes,     setNotes]     = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [toast,     setToast]     = useState(null);
+  const [letter,    setLetter]    = useState(null);
+  const [loadingL,  setLoadingL]  = useState(false);
+  const [scraping,  setScraping]  = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [ef, setEf] = useState({});
+
+  const initEf = p => setEf({
+    deadlineWinterParsed: p.deadlineWinterParsed || '',
+    deadlineSummer:       p.deadlineSummer || '',
+    city:                 p.city || '',
+    degree:               p.degree || '',
+    language:             p.language || '',
+    tuition:              p.tuition || '',
+    duration:             p.duration || '',
+    semesters:            p.semesters || '',
+    website:              p.website || '',
+    accessLink:           p.accessLink || '',
+    description:          p.description || '',
+    uniAssist:            !!p.uniAssist,
+  });
 
   useEffect(() => {
     if (!programId) return;
     api(`/api/programs/${programId}`)
-      .then(d => { setProg(d.program); setStatus(d.program.status); setNotes(d.program.notes||''); setToast(null); setLetter(null); })
+      .then(d => {
+        setProg(d.program);
+        setStatus(d.program.status);
+        setNotes(d.program.notes||'');
+        initEf(d.program);
+        setToast(null); setLetter(null); setIsEditing(false);
+      })
       .catch(e => setToast({ type:'err', msg:e.message }));
   }, [programId]);
 
@@ -1359,9 +1475,25 @@ function DetailPanel({ programId, onClose, onSaved }) {
       const body = {};
       if (status !== prog.status) body.status = status;
       if (notes !== (prog.notes||'')) body.notes = notes;
+      if (isEditing) {
+        if (ef.deadlineWinterParsed !== (prog.deadlineWinterParsed||'')) body.deadlineWinterParsed = ef.deadlineWinterParsed || null;
+        if (ef.deadlineSummer       !== (prog.deadlineSummer||''))       body.deadlineSummer = ef.deadlineSummer;
+        if (ef.city       !== (prog.city||''))        body.city = ef.city;
+        if (ef.degree     !== (prog.degree||''))      body.degree = ef.degree;
+        if (ef.language   !== (prog.language||''))    body.language = ef.language;
+        if (ef.tuition    !== (prog.tuition||''))     body.tuition = ef.tuition;
+        if (ef.duration   !== (prog.duration||''))    body.duration = ef.duration;
+        if (ef.semesters  !== (prog.semesters||''))   body.semesters = ef.semesters;
+        if (ef.website    !== (prog.website||''))     body.website = ef.website;
+        if (ef.accessLink !== (prog.accessLink||''))  body.accessLink = ef.accessLink;
+        if (ef.description!== (prog.description||'')) body.description = ef.description;
+        if (ef.uniAssist  !== !!prog.uniAssist)       body.uniAssist = ef.uniAssist;
+      }
       if (!Object.keys(body).length) { setToast({ type:'ok', msg:'No changes.' }); setSaving(false); return; }
       const d = await api(`/api/programs/${programId}`, { method:'PATCH', body:JSON.stringify(body) });
       setProg(d.program);
+      initEf(d.program);
+      setIsEditing(false);
       setToast({ type:'ok', msg:'Saved!' });
       onSaved && onSaved(d.program);
     } catch(e) { setToast({ type:'err', msg:e.message }); }
@@ -1415,7 +1547,13 @@ function DetailPanel({ programId, onClose, onSaved }) {
               <div class="panel-h2">${prog.name}${prog.uniAssist?html`<span class="tag-ua">UA</span>`:''}</div>
               <div class="panel-univ">${prog.university}${prog.city?' · '+prog.city:''}</div>
             </div>
-            <button class="close-btn" onClick=${onClose}>✕</button>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class=${'edit-toggle-btn'+(isEditing?' active':'')}
+                onClick=${()=>{ if(isEditing) initEf(prog); setIsEditing(e=>!e); setToast(null); }}>
+                ${isEditing?'✕ Cancel':'✎ Edit'}
+              </button>
+              <button class="close-btn" onClick=${onClose}>✕</button>
+            </div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <${Badge} status=${prog.status} />
@@ -1425,21 +1563,75 @@ function DetailPanel({ programId, onClose, onSaved }) {
         </div>
         <div class="panel-body">
           <div class="info-grid">
-            <div class="info-cell"><div class="ic-lbl">Degree</div><div class="ic-val">${prog.degree||'—'}</div></div>
-            <div class="info-cell"><div class="ic-lbl">Language</div><div class="ic-val">${prog.language||'—'}</div></div>
             <div class="info-cell">
-              <div class="ic-lbl">Deadline</div>
-              <div class=${'ic-val dl-cell '+dlCls(prog.deadlineWinterParsed)}>${dlLabel(prog.deadlineWinterParsed)}</div>
+              <div class="ic-lbl">Degree</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" value=${ef.degree} onInput=${e=>setEf(f=>({...f,degree:e.target.value}))} />`
+                : html`<div class="ic-val">${prog.degree||'—'}</div>`}
             </div>
-            <div class="info-cell"><div class="ic-lbl">Tuition</div><div class="ic-val">${prog.tuition||'—'}</div></div>
-            <div class="info-cell"><div class="ic-lbl">City</div><div class="ic-val">${prog.city||'—'}</div></div>
-            <div class="info-cell"><div class="ic-lbl">Duration</div><div class="ic-val">${prog.duration?prog.duration+' yr':'—'}</div></div>
+            <div class="info-cell">
+              <div class="ic-lbl">Language</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" value=${ef.language} onInput=${e=>setEf(f=>({...f,language:e.target.value}))} />`
+                : html`<div class="ic-val">${prog.language||'—'}</div>`}
+            </div>
+            <div class="info-cell">
+              <div class="ic-lbl">Deadline (Winter)</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" type="date" value=${ef.deadlineWinterParsed} onInput=${e=>setEf(f=>({...f,deadlineWinterParsed:e.target.value}))} />`
+                : html`<div class=${'ic-val dl-cell '+dlCls(prog.deadlineWinterParsed)}>${dlLabel(prog.deadlineWinterParsed)}</div>`}
+            </div>
+            <div class="info-cell">
+              <div class="ic-lbl">Tuition</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" value=${ef.tuition} onInput=${e=>setEf(f=>({...f,tuition:e.target.value}))} />`
+                : html`<div class="ic-val">${prog.tuition||'—'}</div>`}
+            </div>
+            <div class="info-cell">
+              <div class="ic-lbl">City</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" value=${ef.city} onInput=${e=>setEf(f=>({...f,city:e.target.value}))} />`
+                : html`<div class="ic-val">${prog.city||'—'}</div>`}
+            </div>
+            <div class="info-cell">
+              <div class="ic-lbl">Duration (yr)</div>
+              ${isEditing
+                ? html`<input class="ic-input ic-input-sm" value=${ef.duration} onInput=${e=>setEf(f=>({...f,duration:e.target.value}))} />`
+                : html`<div class="ic-val">${prog.duration?prog.duration+' yr':'—'}</div>`}
+            </div>
           </div>
+          ${isEditing ? html`
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+              <div>
+                <div class="ic-lbl" style="margin-bottom:4px">Website</div>
+                <input class="ic-input" value=${ef.website} onInput=${e=>setEf(f=>({...f,website:e.target.value}))} placeholder="https://…" />
+              </div>
+              <div>
+                <div class="ic-lbl" style="margin-bottom:4px">Application Link</div>
+                <input class="ic-input" value=${ef.accessLink} onInput=${e=>setEf(f=>({...f,accessLink:e.target.value}))} placeholder="https://…" />
+              </div>
+              <div>
+                <div class="ic-lbl" style="margin-bottom:4px">Deadline (Summer)</div>
+                <input class="ic-input" value=${ef.deadlineSummer} onInput=${e=>setEf(f=>({...f,deadlineSummer:e.target.value}))} placeholder="e.g. 15 Jan" />
+              </div>
+              <div class="ic-check-row">
+                <input type="checkbox" id="ua-check" checked=${ef.uniAssist}
+                  onChange=${e=>setEf(f=>({...f,uniAssist:e.target.checked}))}
+                  style="accent-color:var(--signal);width:14px;height:14px;cursor:pointer" />
+                <label for="ua-check" style="cursor:pointer">Uni-Assist required</label>
+              </div>
+              <div>
+                <div class="ic-lbl" style="margin-bottom:4px">Description</div>
+                <textarea class="p-textarea" rows="3" value=${ef.description}
+                  onInput=${e=>setEf(f=>({...f,description:e.target.value}))}
+                  placeholder="Program description…"></textarea>
+              </div>
+            </div>` : html`
           ${(prog.website||prog.accessLink)&&html`
             <div class="links-row">
               ${prog.website&&html`<a class="ext-link" href=${prog.website} target="_blank" rel="noopener">↗ Website</a>`}
               ${prog.accessLink&&prog.accessLink.startsWith('http')&&html`<a class="ext-link" href=${prog.accessLink} target="_blank" rel="noopener">↗ Apply</a>`}
-            </div>`}
+            </div>`}`}
           <hr class="divider" />
           <div class="p-section">
             <div class="ps-lbl">Update Status</div>

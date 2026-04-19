@@ -3,6 +3,7 @@
  */
 import express from 'express';
 import { readFileSync, existsSync } from 'fs';
+import { createRequire } from 'module';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { loadPrograms, savePrograms, loadChecklist, saveChecklist, loadProfile, getProgramById, updateProgram } from './lib/database.js';
@@ -10,6 +11,7 @@ import { computeFlags, computeScore } from './lib/eligibility.js';
 import { scrapeProgram } from './lib/scraper.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const _require = createRequire(import.meta.url);
 const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed'];
 
 function daysUntil(isoDate) {
@@ -51,10 +53,11 @@ export function createApp() {
   app.use(express.json());
   app.use(express.static(join(__dirname, 'dashboard')));
 
-  const nm = join(__dirname, '..', 'node_modules');
-  app.get('/lib/react.min.js',     (_, res) => res.sendFile(join(nm, 'react/umd/react.production.min.js')));
-  app.get('/lib/react-dom.min.js', (_, res) => res.sendFile(join(nm, 'react-dom/umd/react-dom.production.min.js')));
-  app.get('/lib/htm.js',           (_, res) => res.sendFile(join(nm, 'htm/dist/htm.js')));
+  const reactDir    = dirname(_require.resolve('react'));
+  const reactDomDir = dirname(_require.resolve('react-dom'));
+  app.get('/lib/react.min.js',     (_, res) => res.sendFile(join(reactDir,    'umd/react.production.min.js')));
+  app.get('/lib/react-dom.min.js', (_, res) => res.sendFile(join(reactDomDir, 'umd/react-dom.production.min.js')));
+  app.get('/lib/htm.js',           (_, res) => res.sendFile(_require.resolve('htm')));
 
   app.get('/api/programs', (req, res) => {
     try {
@@ -103,27 +106,43 @@ export function createApp() {
 
   app.patch('/api/programs/:id', (req, res) => {
     try {
-      const { status, notes, documentsSubmitted } = req.body;
+      const {
+        status, notes, documentsSubmitted,
+        deadlineWinterParsed, deadlineWinter, deadlineSummer,
+        city, degree, language, tuition, duration, semesters,
+        website, accessLink, description, uniAssist,
+      } = req.body;
       const patch = {};
       if (status !== undefined) {
         if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status: ' + status });
         patch.status = status;
         if (status === 'accepted' || status === 'filling') patch.appliedDate = new Date().toISOString().slice(0, 10);
       }
-      if (notes !== undefined)              patch.notes = notes;
-      if (documentsSubmitted !== undefined) patch.documentsSubmitted = documentsSubmitted;
+      if (notes !== undefined)                patch.notes = notes;
+      if (documentsSubmitted !== undefined)   patch.documentsSubmitted = documentsSubmitted;
+      if (deadlineWinterParsed !== undefined) patch.deadlineWinterParsed = deadlineWinterParsed || null;
+      if (deadlineWinter !== undefined)       patch.deadlineWinter = deadlineWinter;
+      if (deadlineSummer !== undefined)       patch.deadlineSummer = deadlineSummer;
+      if (city !== undefined)                 patch.city = city;
+      if (degree !== undefined)               patch.degree = degree;
+      if (language !== undefined)             patch.language = language;
+      if (tuition !== undefined)              patch.tuition = tuition;
+      if (duration !== undefined)             patch.duration = duration;
+      if (semesters !== undefined)            patch.semesters = semesters;
+      if (website !== undefined)              patch.website = website;
+      if (accessLink !== undefined)           patch.accessLink = accessLink;
+      if (description !== undefined)          patch.description = description;
+      if (uniAssist !== undefined)            patch.uniAssist = Boolean(uniAssist);
       const updated = updateProgram(req.params.id, patch);
       if (!updated) return res.status(404).json({ error: 'Program not found' });
-      if (status !== undefined) {
-        const programs = loadPrograms();
-        const idx = programs.findIndex(p => p.id === updated.id);
-        if (idx !== -1) {
-          programs[idx].eligibilityFlags = computeFlags(programs[idx]);
-          programs[idx].priorityScore    = computeScore(programs[idx]);
-          savePrograms(programs);
-          updated.eligibilityFlags = programs[idx].eligibilityFlags;
-          updated.priorityScore    = programs[idx].priorityScore;
-        }
+      const programs = loadPrograms();
+      const idx = programs.findIndex(p => p.id === updated.id);
+      if (idx !== -1) {
+        programs[idx].eligibilityFlags = computeFlags(programs[idx]);
+        programs[idx].priorityScore    = computeScore(programs[idx]);
+        savePrograms(programs);
+        updated.eligibilityFlags = programs[idx].eligibilityFlags;
+        updated.priorityScore    = programs[idx].priorityScore;
       }
       res.json({ program: updated });
     } catch (err) { res.status(500).json({ error: err.message }); }
