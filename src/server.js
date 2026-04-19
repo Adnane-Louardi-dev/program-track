@@ -3,6 +3,7 @@
  */
 import express from 'express';
 import { readFileSync, existsSync } from 'fs';
+import { createRequire } from 'module';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { loadPrograms, savePrograms, loadChecklist, saveChecklist, loadProfile, getProgramById, updateProgram } from './lib/database.js';
@@ -10,6 +11,7 @@ import { computeFlags, computeScore } from './lib/eligibility.js';
 import { scrapeProgram } from './lib/scraper.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const _require = createRequire(import.meta.url);
 const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed'];
 
 function daysUntil(isoDate) {
@@ -51,10 +53,11 @@ export function createApp() {
   app.use(express.json());
   app.use(express.static(join(__dirname, 'dashboard')));
 
-  const nm = join(__dirname, '..', 'node_modules');
-  app.get('/lib/react.min.js',     (_, res) => res.sendFile(join(nm, 'react/umd/react.production.min.js')));
-  app.get('/lib/react-dom.min.js', (_, res) => res.sendFile(join(nm, 'react-dom/umd/react-dom.production.min.js')));
-  app.get('/lib/htm.js',           (_, res) => res.sendFile(join(nm, 'htm/dist/htm.js')));
+  const reactDir    = dirname(_require.resolve('react'));
+  const reactDomDir = dirname(_require.resolve('react-dom'));
+  app.get('/lib/react.min.js',     (_, res) => res.sendFile(join(reactDir,    'umd/react.production.min.js')));
+  app.get('/lib/react-dom.min.js', (_, res) => res.sendFile(join(reactDomDir, 'umd/react-dom.production.min.js')));
+  app.get('/lib/htm.js',           (_, res) => res.sendFile(_require.resolve('htm')));
 
   app.get('/api/programs', (req, res) => {
     try {

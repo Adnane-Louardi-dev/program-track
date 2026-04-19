@@ -1549,7 +1549,7 @@ function DetailPanel({ programId, onClose, onSaved }) {
             </div>
             <div style="display:flex;gap:6px;align-items:center">
               <button class=${'edit-toggle-btn'+(isEditing?' active':'')}
-                onClick=${()=>{ setIsEditing(e=>!e); setToast(null); }}>
+                onClick=${()=>{ if(isEditing) initEf(prog); setIsEditing(e=>!e); setToast(null); }}>
                 ${isEditing?'✕ Cancel':'✎ Edit'}
               </button>
               <button class="close-btn" onClick=${onClose}>✕</button>
