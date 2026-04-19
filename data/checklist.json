@@ -1,0 +1,58 @@
+{
+  "d1": {
+    "label": "Bachelor's degree certificate (certified copy)",
+    "done": false
+  },
+  "d2": {
+    "label": "S5 Relevé des notes",
+    "done": false
+  },
+  "d3": {
+    "label": "S6 Relevé des notes (after graduation)",
+    "done": false
+  },
+  "d4": {
+    "label": "Full transcript of records",
+    "done": false
+  },
+  "d5": {
+    "label": "IELTS 7.0+ certificate",
+    "done": false
+  },
+  "d6": {
+    "label": "German B1 certificate (if needed)",
+    "done": false
+  },
+  "d7": {
+    "label": "CV / Resume (Europass)",
+    "done": false
+  },
+  "d8": {
+    "label": "Motivation letters",
+    "done": false
+  },
+  "d9": {
+    "label": "Recommendation letters (2x)",
+    "done": false
+  },
+  "d10": {
+    "label": "GitHub portfolio document",
+    "done": false
+  },
+  "d11": {
+    "label": "VPD application submitted",
+    "done": false
+  },
+  "d12": {
+    "label": "Uni-Assist fees paid",
+    "done": false
+  },
+  "d13": {
+    "label": "Blocked account proof (€11,208+)",
+    "done": false
+  },
+  "d14": {
+    "label": "Valid passport copy",
+    "done": false
+  }
+}

@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GMA — German Masters Applications</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080808;
+      --surface:     #101010;
+      --surface2:    #181818;
+      --surface3:    #222222;
+      --border:      #282828;
+      --border-mid:  #383838;
+
+      --signal:      #FFD600;
+      --signal-dim:  rgba(255,214,0,0.08);
+      --signal-glow: rgba(255,214,0,0.2);
+
+      --green:       #00C853;
+      --green-dim:   rgba(0,200,83,0.1);
+      --red:         #FF3D3D;
+      --red-dim:     rgba(255,61,61,0.1);
+      --yellow:      #FFB300;
+      --yellow-dim:  rgba(255,179,0,0.1);
+      --cyan:        #00B8D9;
+      --cyan-dim:    rgba(0,184,217,0.1);
+      --purple:      #9B6DFF;
+      --purple-dim:  rgba(155,109,255,0.1);
+      --orange:      #FF6B35;
+
+      --text:        #F0F0F0;
+      --text-mid:    #888888;
+      --text-dim:    #444444;
+
+      --fd: 'Barlow Condensed', sans-serif;
+      --fb: 'Barlow', sans-serif;
+      --fm: 'IBM Plex Mono', monospace;
+
+      --sidebar-w: 220px;
+      --r:  4px;
+      --rl: 8px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--fb);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .wordmark {
+      font-family: var(--fd);
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--signal);
+      line-height: 1;
+    }
+    .wordmark-sub {
+      font-family: var(--fm);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+    .sidebar-nav { flex: 1; padding: 10px 0; }
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-mid);
+      font-family: var(--fd);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: 100%;
+      text-align: left;
+      position: relative;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-btn:hover { background: var(--surface2); color: var(--text); }
+    .nav-btn.active { color: var(--signal); background: var(--signal-dim); }
+    .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--signal);
+    }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+    .sidebar-foot {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--r);
+      border: 1px solid var(--border-mid);
+      background: transparent;
+      color: var(--text-mid);
+      font-family: var(--fm);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .refresh-btn:hover { border-color: var(--signal); color: var(--signal); background: var(--signal-dim); }
+
+    /* ── Main ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+    /* ── Alert banner ── */
+    .alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 28px;
+      background: rgba(255,61,61,0.06);
+      border-bottom: 1px solid rgba(255,61,61,0.18);
+      flex-shrink: 0;
+    }
+    .ab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; animation: pulse 1.5s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .ab-text { font-family: var(--fm); font-size: 12px; color: var(--text-mid); flex: 1; }
+    .ab-text strong { color: var(--red); }
+    .ab-cta {
+      background: none;
+      border: none;
+      color: var(--signal);
+      font-family: var(--fm);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* ── Content ── */
+    .content { flex: 1; padding: 28px 32px; }
+
+    /* ── Section head ── */
+    .page-head {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-head h1 {
+      font-family: var(--fd);
+      font-size: 36px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    .page-sub {
+      font-family: var(--fm);
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    /* ── Stat grid ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .stat-cell {
+      background: var(--surface);
+      padding: 18px 20px;
+      transition: background 0.12s;
+      cursor: default;
+    }
+    .stat-cell:hover { background: var(--surface2); }
+    .stat-num {
+      font-family: var(--fd);
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--text-dim);
+    }
+    .stat-lbl {
+      font-family: var(--fm);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+    .sc-signal .stat-num { color: var(--signal); }
+    .sc-green  .stat-num { color: var(--green); }
+    .sc-red    .stat-num { color: var(--red); }
+    .sc-yellow .stat-num { color: var(--yellow); }
+    .sc-cyan   .stat-num { color: var(--cyan); }
+    .sc-purple .stat-num { color: var(--purple); }
+
+    /* ── Pipeline ── */
+    .pipeline { margin-bottom: 28px; }
+    .section-label {
+      font-family: var(--fm);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .pipe-bar {
+      display: flex;
+      height: 28px;
+      border-radius: var(--r);
+      overflow: hidden;
+      gap: 2px;
+      background: var(--border);
+    }
+    .pipe-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--fm);
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.65);
+      transition: flex 0.7s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+      cursor: default;
+    }
+    .pipe-legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .pipe-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--fm);
+      font-size: 10px;
+      color: var(--text-mid);
+    }
+    .legend-sq { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── Two-column cards ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 18px 20px;
+    }
+    .info-card .ic-label {
+      font-family: var(--fm);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .prog-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .prog-row:last-child { margin-bottom: 0; }
+    .pr-name { font-size: 12px; color: var(--text-mid); min-width: 150px; }
+    .prog-bar { flex: 1; height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 2px; transition: width 0.9s cubic-bezier(.4,0,.2,1); }
+    .pr-val { font-family: var(--fm); font-size: 10px; color: var(--text-dim); min-width: 52px; text-align: right; }
+
+    /* ── Deadline cards ── */
+    .dl-section { margin-bottom: 28px; }
+    .dl-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .dl-scroll::-webkit-scrollbar { height: 3px; }
+    .dl-scroll::-webkit-scrollbar-track { background: transparent; }
+    .dl-scroll::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .dl-card {
+      flex-shrink: 0;
+      width: 136px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      cursor: default;
+      transition: background 0.12s;
+      position: relative;
+      overflow: hidden;
+    }
+    .dl-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .dl-card.urgent::before { background: var(--red); }
+    .dl-card.soon::before   { background: var(--yellow); }
+    .dl-card.ok::before     { background: var(--green); }
+    .dl-card:hover { background: var(--surface2); }
+    .dl-big {
+      font-family: var(--fd);
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .dl-card.urgent .dl-big { color: var(--red); }
+    .dl-card.soon   .dl-big { color: var(--yellow); }
+    .dl-card.ok     .dl-big { color: var(--green); }
+    .dl-unit { font-family: var(--fm); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-left: 2px; }
+    .dl-name { font-size: 11px; font-weight: 500; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dl-univ { font-family: var(--fm); font-size: 9px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .dl-ua   { font-family: var(--fm); font-size: 8px; font-weight: 700; color: var(--purple); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── Filter section ── */
+    .filter-wrap { margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .f-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: var(--r);
+      font-family: var(--fm);
+      font-size: 12px;
+      outline: none;
+      min-width: 260px;
+      transition: border-color 0.12s;
+    }
+    .f-input:focus { border-color: var(--signal); }
+    .f-input::placeholder { color: var(--text-dim); }
+    .f-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: var(--r);
+      font-family: var(--fm);
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.12s;
+    }
+    .f-select:focus { border-color: var(--signal); }
+    .f-clear {
+      font-family: var(--fm);
+      font-size: 10px;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .f-clear:hover { color: var(--red); }
+    .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--fm);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .chip:hover { border-color: var(--border-mid); color: var(--text-mid); }
+    .chip.active { background: var(--signal-dim); border-color: var(--signal); color: var(--signal); }
+    .chip-sep { color: var(--border-mid); font-size: 14px; display: flex; align-items: center; }
+
+    /* ── View toggle ── */
+    .view-toggle { display: flex; gap: 4px; margin-left: auto; }
+    .vt-btn {
+      padding: 4px 10px;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--fm);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .vt-btn.active { background: var(--signal-dim); border-color: var(--signal); color: var(--signal); }
+
+    /* ── Table ── */
+    .tbl-wrap { border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--surface2);
+      padding: 9px 13px;
+      text-align: left;
+      font-family: var(--fm);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th:hover { color: var(--text-mid); }
+    thead th.sorted { color: var(--signal); }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.08s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody tr:hover td.td-first { border-left: 2px solid var(--signal); padding-left: 11px; }
+    tbody td { padding: 9px 13px; font-size: 13px; vertical-align: middle; }
+    .td-first { transition: border-left 0.1s, padding-left 0.1s; }
+    .td-id    { font-family: var(--fm); font-size: 10px; color: var(--text-dim); }
+    .td-name  { font-weight: 500; }
+    .td-univ  { font-size: 12px; color: var(--text-mid); }
+    .td-mono  { font-family: var(--fm); font-size: 11px; }
+
+    /* ── Kanban ── */
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      align-items: start;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .kanban-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      overflow: hidden;
+      min-width: 160px;
+    }
+    .kanban-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .kanban-head-title {
+      font-family: var(--fd);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .kanban-count {
+      font-family: var(--fm);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--surface3);
+      color: var(--text-dim);
+    }
+    .kanban-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 600px; overflow-y: auto; }
+    .kanban-body::-webkit-scrollbar { width: 3px; }
+    .kanban-body::-webkit-scrollbar-thumb { background: var(--border-mid); }
+    .kanban-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 9px 10px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      font-size: 12px;
+    }
+    .kanban-card:hover { border-color: var(--border-mid); background: var(--surface3); }
+    .kc-name { font-weight: 500; line-height: 1.3; margin-bottom: 4px; }
+    .kc-univ { font-family: var(--fm); font-size: 9px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kc-meta { display: flex; align-items: center; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+    .kc-dl   { font-family: var(--fm); font-size: 9px; }
+    .kc-dl.urgent { color: var(--red); }
+    .kc-dl.soon   { color: var(--yellow); }
+    .kc-dl.ok     { color: var(--green); }
+    .kc-dl.passed { color: var(--text-dim); text-decoration: line-through; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: var(--fm);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .badge-not-yet  { background: rgba(100,116,139,0.12); color: #64748b; }
+    .badge-filling  { background: var(--yellow-dim);  color: var(--yellow); }
+    .badge-pending  { background: var(--cyan-dim);    color: var(--cyan); }
+    .badge-accepted { background: var(--green-dim);   color: var(--green); }
+    .badge-rejected { background: var(--red-dim);     color: var(--red); }
+    .badge-missed   { background: rgba(255,61,61,0.05); color: #7f1d1d; }
+
+    /* ── Flags ── */
+    .flag {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-family: var(--fm);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 1px;
+    }
+    .flag-STRONG_FIT      { background: var(--green-dim);  color: var(--green); }
+    .flag-ECTS_GAP        { background: var(--yellow-dim); color: var(--yellow); }
+    .flag-GERMAN_REQUIRED { background: var(--red-dim);    color: var(--red); }
+    .flag-DEADLINE_PASSED { background: var(--red-dim);    color: var(--red); }
+    .flag-GPA_RISK        { background: var(--yellow-dim); color: var(--yellow); }
+
+    /* ── Score ── */
+    .score-wrap { display: flex; align-items: center; gap: 6px; }
+    .score-bar  { width: 40px; height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 2px; }
+    .score-num  { font-family: var(--fm); font-size: 10px; font-weight: 600; min-width: 24px; }
+
+    /* ── Deadline cell ── */
+    .dl-cell { font-family: var(--fm); font-size: 11px; }
+    .dl-cell.urgent { color: var(--red); font-weight: 600; }
+    .dl-cell.soon   { color: var(--yellow); }
+    .dl-cell.ok     { color: var(--green); }
+    .dl-cell.passed { color: #7f1d1d; text-decoration: line-through; }
+
+    /* ── Tags ── */
+    .tag-ua {
+      font-family: var(--fm); font-size: 8px; font-weight: 700;
+      padding: 1px 4px; border-radius: 2px;
+      background: var(--purple-dim); color: var(--purple);
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    /* ── Detail panel ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 500;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .panel {
+      width: 500px;
+      max-width: 95vw;
+      background: var(--surface);
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border-mid);
+      animation: slideIn 0.22s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .panel-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: var(--surface);
+      z-index: 10;
+    }
+    .panel-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .panel-h2 {
+      font-family: var(--fd);
+      font-size: 20px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+      flex: 1;
+      margin-right: 12px;
+    }
+    .panel-univ { font-family: var(--fm); font-size: 10px; color: var(--text-dim); letter-spacing: 0.04em; }
+    .close-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-mid);
+      width: 28px; height: 28px;
+      border-radius: var(--r);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.12s;
+    }
+    .close-btn:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .panel-body { padding: 20px 22px; flex: 1; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .info-cell { background: var(--surface2); padding: 10px 12px; }
+    .ic-lbl { font-family: var(--fm); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 3px; }
+    .ic-val { font-size: 13px; font-weight: 500; }
+    .p-section { margin-bottom: 18px; }
+    .p-section .ps-lbl { font-family: var(--fm); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 7px; }
+    .p-select, .p-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 11px;
+      border-radius: var(--r);
+      font-family: var(--fm);
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    .p-select:focus, .p-textarea:focus { border-color: var(--signal); }
+    .p-textarea { resize: vertical; min-height: 80px; font-family: var(--fb); font-size: 13px; }
+    .save-btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: var(--r);
+      border: none;
+      background: var(--signal);
+      color: #000;
+      font-family: var(--fd);
+      font-size: 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background 0.12s;
+      margin-bottom: 16px;
+    }
+    .save-btn:hover:not(:disabled) { background: #ffe64d; }
+    .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toast-ok  { padding: 8px 12px; border-radius: var(--r); font-family: var(--fm); font-size: 11px; margin-bottom: 12px; background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,200,83,0.25); }
+    .toast-err { padding: 8px 12px; border-radius: var(--r); font-family: var(--fm); font-size: 11px; margin-bottom: 12px; background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,61,0.25); }
+    .links-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .ext-link {
+      padding: 5px 12px;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      color: var(--text-mid);
+      text-decoration: none;
+      font-family: var(--fm);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: all 0.12s;
+    }
+    .ext-link:hover { border-color: var(--signal); color: var(--signal); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .view-letter-btn {
+      padding: 8px 14px;
+      border-radius: var(--r);
+      border: 1px solid var(--border-mid);
+      background: transparent;
+      color: var(--text-mid);
+      font-family: var(--fm);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .view-letter-btn:hover { border-color: var(--signal); color: var(--signal); }
+    .letter-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      max-height: 360px;
+      overflow-y: auto;
+      color: var(--text-mid);
+      font-family: Georgia, serif;
+    }
+
+    /* ── Requirements ── */
+    .scrape-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--r);
+      border: 1px dashed var(--signal);
+      background: var(--signal-dim);
+      color: var(--signal);
+      font-family: var(--fm);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .scrape-btn:hover:not(:disabled) { background: var(--signal); color: var(--bg); border-style: solid; }
+    .scrape-btn:disabled { opacity: 0.55; cursor: progress; }
+    .scrape-btn .spin { display: inline-block; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .req-meta {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      font-family: var(--fm); font-size: 10px; color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .req-meta .rm-chip {
+      padding: 2px 7px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .req-meta .rm-chip.conf-high   { color: var(--green); border-color: rgba(80,200,120,0.35); }
+    .req-meta .rm-chip.conf-medium { color: var(--signal); border-color: rgba(255,214,0,0.35); }
+    .req-meta .rm-chip.conf-low    { color: var(--red); border-color: rgba(255,80,80,0.35); }
+    .req-meta .rm-link { color: var(--text-mid); text-decoration: none; border-bottom: 1px dotted var(--border-mid); }
+    .req-meta .rm-link:hover { color: var(--signal); border-color: var(--signal); }
+    .req-group { margin-bottom: 14px; }
+    .req-group .rg-title {
+      font-family: var(--fm); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--signal);
+      padding-bottom: 5px;
+      margin-bottom: 7px;
+      border-bottom: 1px solid var(--border);
+    }
+    .req-list { list-style: none; padding: 0; margin: 0; }
+    .req-list li {
+      position: relative;
+      padding: 5px 0 5px 14px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text-mid);
+    }
+    .req-list li::before {
+      content: '▸';
+      position: absolute; left: 0; top: 5px;
+      color: var(--signal);
+      font-size: 10px;
+    }
+    .req-empty { font-family: var(--fm); font-size: 11px; color: var(--text-dim); padding: 6px 0; }
+    .req-rescrape {
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: var(--r);
+      font-family: var(--fm);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .req-rescrape:hover:not(:disabled) { border-color: var(--signal); color: var(--signal); }
+    .req-rescrape:disabled { opacity: 0.5; cursor: progress; }
+
+    /* ── Checklist ── */
+    .cl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .cl-header h2 { font-family: var(--fd); font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cl-prog { font-family: var(--fm); font-size: 13px; font-weight: 600; }
+    .cl-bar { height: 2px; background: var(--surface3); border-radius: 1px; overflow: hidden; margin-bottom: 22px; }
+    .cl-fill { height: 100%; border-radius: 1px; transition: width 0.7s cubic-bezier(.4,0,.2,1); }
+    .cl-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 11px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .cl-item:hover { background: var(--surface2); }
+    .cl-item.done { opacity: 0.55; border-left: 3px solid var(--green); }
+    .cl-item.done .cl-text { text-decoration: line-through; color: var(--text-dim); }
+    .cl-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--signal); flex-shrink: 0; }
+    .cl-text { font-size: 14px; flex: 1; }
+    .cl-check-mark { color: var(--green); font-size: 12px; }
+    .cl-all-done { text-align: center; padding: 24px; font-family: var(--fd); font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green); }
+
+    /* ── Plan / Today ── */
+    .plan-head { margin-bottom: 24px; }
+    .plan-head h2 { font-family: var(--fd); font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1; }
+    .plan-date { font-family: var(--fm); font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 5px; }
+    .plan-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .ps-overdue  { border-left: 3px solid var(--red); }
+    .ps-thisweek { border-left: 3px solid var(--orange); }
+    .ps-nextweek { border-left: 3px solid var(--yellow); }
+    .ps-ua       { border-left: 3px solid var(--purple); }
+    .ps-actions  { border-left: 3px solid var(--signal); }
+    .ps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .ps-title { font-family: var(--fd); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
+    .ps-overdue  .ps-title { color: var(--red); }
+    .ps-thisweek .ps-title { color: var(--orange); }
+    .ps-nextweek .ps-title { color: var(--yellow); }
+    .ps-ua       .ps-title { color: var(--purple); }
+    .ps-actions  .ps-title { color: var(--signal); }
+    .plan-row { padding: 8px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: padding-left 0.1s; }
+    .plan-row:last-child { border-bottom: none; }
+    .plan-row:hover { padding-left: 6px; }
+    .pr-name  { font-size: 13px; font-weight: 500; }
+    .pr-detail { font-family: var(--fm); font-size: 10px; color: var(--text-mid); margin-top: 2px; }
+    .mark-missed-btn {
+      padding: 3px 10px;
+      border-radius: var(--r);
+      border: 1px solid var(--red);
+      background: var(--red-dim);
+      color: var(--red);
+      font-family: var(--fm);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .mark-missed-btn:hover { background: var(--red); color: #000; }
+    .mark-missed-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .action-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+    .action-item:last-child { border-bottom: none; }
+    .action-num { font-family: var(--fd); font-size: 22px; font-weight: 900; color: var(--signal); min-width: 22px; line-height: 1.1; }
+    .action-text { font-size: 13px; color: var(--text-mid); padding-top: 3px; }
+
+    /* ── Empty ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+    .empty-glyph { font-family: var(--fd); font-size: 52px; font-weight: 900; letter-spacing: 0.1em; color: var(--border); text-transform: uppercase; margin-bottom: 12px; }
+    .empty p { font-family: var(--fm); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* ── Row count ── */
+    .row-count { font-family: var(--fm); font-size: 10px; color: var(--text-dim); margin-top: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* ── Misc ── */
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .two-col { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(3,1fr); }
+      .kanban { grid-template-columns: repeat(3,1fr); }
+    }
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .stat-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="/lib/react.min.js"></script>
+<script src="/lib/react-dom.min.js"></script>
+<script src="/lib/htm.js"></script>
+<script>
+// ── h wrapper ──────────────────────────────────────────────────────────────
+function h(type, props) {
+  if (props) {
+    if (props.class !== undefined) { props.className = props.class; delete props.class; }
+    if (typeof props.style === 'string') {
+      var obj = {};
+      props.style.split(';').forEach(function(r) {
+        var c = r.indexOf(':'); if (c < 0) return;
+        var k = r.slice(0,c).trim().replace(/-([a-z])/g,(_,x)=>x.toUpperCase());
+        var v = r.slice(c+1).trim();
+        if (k && v) obj[k] = v;
+      });
+      props.style = obj;
+    }
+  }
+  return React.createElement.apply(React, arguments);
+}
+const html = htm.bind(h);
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function daysLeft(iso) {
+  if (!iso) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((new Date(iso) - t) / 86400000);
+}
+function dlCls(iso) {
+  const d = daysLeft(iso);
+  if (d === null) return '';
+  if (d < 0)  return 'passed';
+  if (d < 14) return 'urgent';
+  if (d < 30) return 'soon';
+  return 'ok';
+}
+function dlLabel(iso) {
+  const d = daysLeft(iso);
+  if (d === null) return '—';
+  if (d < 0)  return `${iso} (passed)`;
+  if (d === 0) return `${iso} (today!)`;
+  return `${iso} (${d}d)`;
+}
+function scoreColor(s) {
+  if (s >= 70) return 'var(--green)';
+  if (s >= 40) return 'var(--yellow)';
+  return 'var(--red)';
+}
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  return d;
+}
+
+// ── Atoms ─────────────────────────────────────────────────────────────────
+function Badge({ status }) {
+  return html`<span class=${`badge badge-${status}`}>${status}</span>`;
+}
+function Flags({ flags }) {
+  if (!flags || !flags.length) return html`<span style="color:var(--text-dim);font-size:10px">—</span>`;
+  const map = { STRONG_FIT:'FIT', ECTS_GAP:'ECTS', GERMAN_REQUIRED:'DE', DEADLINE_PASSED:'EXP', GPA_RISK:'GPA' };
+  return html`<span>${flags.map(f => html`<span key=${f} class=${`flag flag-${f}`}>${map[f]||f}</span>`)}</span>`;
+}
+function Score({ score }) {
+  if (score == null) return html`<span style="color:var(--text-dim);font-size:10px">—</span>`;
+  return html`
+    <div class="score-wrap">
+      <div class="score-bar"><div class="score-fill" style=${{width:score+'%',background:scoreColor(score)}}></div></div>
+      <span class="score-num" style=${{color:scoreColor(score)}}>${score}</span>
+    </div>`;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function Sidebar({ tab, setTab, loading, onRefresh }) {
+  const nav = [
+    { id:'overview',  icon:'◈', label:'Overview'  },
+    { id:'programs',  icon:'≡', label:'Programs'  },
+    { id:'checklist', icon:'□', label:'Checklist' },
+    { id:'today',     icon:'◎', label:'Today'     },
+  ];
+  return html`
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="wordmark">GMA</div>
+        <div class="wordmark-sub">Masters Tracker · WS 2026/27</div>
+      </div>
+      <nav class="sidebar-nav">
+        ${nav.map(n => html`
+          <button key=${n.id} class=${`nav-btn ${tab===n.id?'active':''}`} onClick=${()=>setTab(n.id)}>
+            <span class="nav-icon">${n.icon}</span>
+            ${n.label}
+          </button>`)}
+      </nav>
+      <div class="sidebar-foot">
+        <button class="refresh-btn" onClick=${onRefresh}>
+          ${loading ? html`<span class="spin">↻</span>` : '↻'} Refresh data
+        </button>
+      </div>
+    </aside>`;
+}
+
+// ── StatGrid ───────────────────────────────────────────────────────────────
+function StatGrid({ s }) {
+  if (!s) return null;
+  const { total, byStatus, lettersGenerated, highPriority, urgentDeadlines14, uniAssistCount, strongFit } = s;
+  const cells = [
+    { n: total,              l:'Total',       c:'sc-signal' },
+    { n: byStatus['not-yet'],l:'Not Started', c:'' },
+    { n: byStatus['filling'],l:'In Progress', c:'sc-yellow' },
+    { n: byStatus['pending'],l:'Pending',     c:'sc-cyan' },
+    { n: byStatus['accepted'],l:'Accepted',   c:'sc-green' },
+    { n: urgentDeadlines14,  l:'Due ≤14d',    c:'sc-red' },
+    { n: lettersGenerated,   l:'Letters',     c:'sc-green' },
+    { n: highPriority,       l:'High Prio',   c:'sc-green' },
+    { n: uniAssistCount,     l:'Uni-Assist',  c:'sc-purple' },
+    { n: strongFit,          l:'Strong Fit',  c:'sc-green' },
+  ];
+  return html`
+    <div class="stat-grid">
+      ${cells.map((c,i) => html`
+        <div key=${i} class=${`stat-cell ${c.c}`}>
+          <div class="stat-num">${c.n ?? 0}</div>
+          <div class="stat-lbl">${c.l}</div>
+        </div>`)}
+    </div>`;
+}
+
+// ── PipelineBar ────────────────────────────────────────────────────────────
+function PipelineBar({ s }) {
+  if (!s) return null;
+  const { total, byStatus } = s;
+  const segs = [
+    { key:'not-yet',  color:'#2a2a2a', label:'Not Yet'  },
+    { key:'filling',  color:'#FFB300', label:'Filling'  },
+    { key:'pending',  color:'#00B8D9', label:'Pending'  },
+    { key:'accepted', color:'#00C853', label:'Accepted' },
+    { key:'rejected', color:'#FF3D3D', label:'Rejected' },
+    { key:'missed',   color:'#3d1010', label:'Missed'   },
+  ].filter(s => (byStatus[s.key]||0) > 0);
+  return html`
+    <div class="pipeline">
+      <div class="section-label">Application Pipeline</div>
+      <div class="pipe-bar">
+        ${segs.map(seg => html`
+          <div key=${seg.key} class="pipe-seg" style=${{flex:byStatus[seg.key]/total,background:seg.color}}
+            title=${seg.label+': '+byStatus[seg.key]}>
+            ${byStatus[seg.key] > 3 ? String(byStatus[seg.key]) : ''}
+          </div>`)}
+      </div>
+      <div class="pipe-legend">
+        ${segs.map(seg => html`
+          <span key=${seg.key} class="pipe-legend-item">
+            <span class="legend-sq" style=${{background:seg.color}}></span>
+            ${seg.label} ${byStatus[seg.key]}
+          </span>`)}
+      </div>
+    </div>`;
+}
+
+// ── ProgressCards ──────────────────────────────────────────────────────────
+function ProgressCards({ s }) {
+  if (!s) return null;
+  const { total, byStatus, lettersGenerated, highPriority, mediumPriority, lowPriority } = s;
+  const decided = (byStatus.accepted||0)+(byStatus.rejected||0)+(byStatus.missed||0);
+  const active  = (byStatus.filling||0)+(byStatus.pending||0);
+  const left  = [
+    { n:'Applications started', v:decided+active, color:'var(--signal)' },
+    { n:'Letters generated',    v:lettersGenerated, color:'var(--green)' },
+    { n:'Decisions received',   v:decided, color:'var(--cyan)' },
+  ];
+  const right = [
+    { n:'High priority (≥70)',   v:highPriority||0,   color:'var(--green)' },
+    { n:'Medium priority (≥40)', v:mediumPriority||0, color:'var(--yellow)' },
+    { n:'Low / ineligible',      v:lowPriority||0,    color:'var(--red)' },
+  ];
+  const Card = ({ bars, title }) => html`
+    <div class="info-card">
+      <div class="ic-label">${title}</div>
+      ${bars.map((b,i) => html`
+        <div key=${i} class="prog-row">
+          <span class="pr-name">${b.n}</span>
+          <div class="prog-bar"><div class="prog-fill" style=${{width:Math.round(b.v/(total||1)*100)+'%',background:b.color}}></div></div>
+          <span class="pr-val">${b.v} / ${total}</span>
+        </div>`)}
+    </div>`;
+  return html`
+    <div class="two-col">
+      <${Card} bars=${left}  title="Application Progress" />
+      <${Card} bars=${right} title="Priority Distribution" />
+    </div>`;
+}
+
+// ── DeadlineStrip ──────────────────────────────────────────────────────────
+function DeadlineStrip({ deadlines }) {
+  if (!deadlines || !deadlines.length) return html`
+    <p style="font-family:var(--fm);font-size:11px;color:var(--text-dim);margin-bottom:28px;text-transform:uppercase;letter-spacing:.1em">
+      No upcoming deadlines in the next 8 weeks
+    </p>`;
+  return html`
+    <div class="dl-section">
+      <div class="section-label">Upcoming Deadlines — next 8 weeks (${deadlines.length})</div>
+      <div class="dl-scroll">
+        ${deadlines.slice(0,40).map(d => {
+          const cls = d.daysLeft < 14 ? 'urgent' : d.daysLeft < 30 ? 'soon' : 'ok';
+          return html`
+            <div key=${d.id} class=${`dl-card ${cls}`}>
+              <div>
+                <span class="dl-big">${d.daysLeft}</span>
+                <span class="dl-unit">days</span>
+              </div>
+              <div class="dl-name">${d.name}</div>
+              <div class="dl-univ">${d.university}</div>
+              ${d.uniAssist ? html`<div class="dl-ua">UA Required</div>` : ''}
+            </div>`;
+        })}
+      </div>
+    </div>`;
+}
+
+// ── OverviewTab ────────────────────────────────────────────────────────────
+function OverviewTab({ summary, deadlines, onTab }) {
+  return html`
+    <div>
+      <div class="page-head">
+        <h1>Overview</h1>
+        <span class="page-sub">WS 2026/27</span>
+      </div>
+      <${StatGrid} s=${summary} />
+      <${PipelineBar} s=${summary} />
+      <${ProgressCards} s=${summary} />
+      <${DeadlineStrip} deadlines=${deadlines} />
+      ${summary && summary.urgentDeadlines14 > 0 && html`
+        <div style="padding:12px 18px;background:rgba(255,61,61,0.06);border:1px solid rgba(255,61,61,0.18);border-radius:var(--rl);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-family:var(--fm);font-size:12px;color:var(--text-mid)">
+            <strong style="color:var(--red)">${summary.urgentDeadlines14} deadline(s)</strong> due within 14 days
+          </span>
+          <button onClick=${()=>onTab('today')} style="background:none;border:none;color:var(--signal);font-family:var(--fm);font-size:11px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;text-decoration:underline">
+            Review Plan →
+          </button>
+        </div>`}
+    </div>`;
+}
+
+// ── FilterBar ──────────────────────────────────────────────────────────────
+function FilterBar({ f, setF, all, view, setView }) {
+  const cities = [...new Set(all.map(p=>p.city).filter(Boolean))].sort();
+  const langs  = [...new Set(all.map(p=>p.language).filter(Boolean))].sort();
+  const set = k => e => setF(prev => ({...prev,[k]:e.target.value}));
+  const chip = (k,v) => setF(prev => ({...prev,[k]:prev[k]===v?'':v}));
+  const clear = () => setF({ status:'',language:'',city:'',flag:'',search:'',sort:'deadline' });
+  return html`
+    <div class="filter-wrap">
+      <div class="filter-row">
+        <input class="f-input" type="text" placeholder="Search programs, universities, cities…" value=${f.search} onInput=${set('search')} />
+        <select class="f-select" value=${f.language} onChange=${set('language')}>
+          <option value="">All Languages</option>
+          ${langs.map(l=>html`<option key=${l} value=${l}>${l}</option>`)}
+        </select>
+        <select class="f-select" value=${f.city} onChange=${set('city')}>
+          <option value="">All Cities</option>
+          ${cities.map(c=>html`<option key=${c} value=${c}>${c}</option>`)}
+        </select>
+        <select class="f-select" value=${f.sort} onChange=${set('sort')}>
+          <option value="deadline">↕ Deadline</option>
+          <option value="score">↕ Score</option>
+          <option value="name">↕ Name</option>
+          <option value="university">↕ University</option>
+        </select>
+        <button class="f-clear" onClick=${clear}>Clear</button>
+        <div class="view-toggle">
+          <button class=${'vt-btn '+(view==='table'?'active':'')} onClick=${()=>setView('table')}>≡ Table</button>
+          <button class=${'vt-btn '+(view==='kanban'?'active':'')} onClick=${()=>setView('kanban')}>⊞ Kanban</button>
+        </div>
+      </div>
+      <div class="chip-row">
+        ${['not-yet','filling','pending','accepted','rejected','missed'].map(s=>html`
+          <button key=${s} class=${'chip '+(f.status===s?'active':'')} onClick=${()=>chip('status',s)}>${s}</button>`)}
+        <span class="chip-sep">|</span>
+        ${[{v:'STRONG_FIT',l:'Strong Fit'},{v:'ECTS_GAP',l:'ECTS Gap'},{v:'GERMAN_REQUIRED',l:'DE Only'},{v:'GPA_RISK',l:'GPA Risk'}].map(({v,l})=>html`
+          <button key=${v} class=${'chip '+(f.flag===v?'active':'')} onClick=${()=>chip('flag',v)}>${l}</button>`)}
+      </div>
+    </div>`;
+}
+
+// ── KanbanView ─────────────────────────────────────────────────────────────
+function KanbanView({ programs, onSelect }) {
+  const cols = [
+    { key:'not-yet',  label:'Not Yet',  color:'#3a3a3a' },
+    { key:'filling',  label:'Filling',  color:'var(--yellow)' },
+    { key:'pending',  label:'Pending',  color:'var(--cyan)' },
+    { key:'accepted', label:'Accepted', color:'var(--green)' },
+    { key:'rejected', label:'Rejected', color:'var(--red)' },
+    { key:'missed',   label:'Missed',   color:'#7f1d1d' },
+  ];
+  const byStatus = {};
+  cols.forEach(c => { byStatus[c.key] = programs.filter(p => p.status === c.key); });
+  return html`
+    <div class="kanban">
+      ${cols.map(col => html`
+        <div key=${col.key} class="kanban-col">
+          <div class="kanban-head" style=${{borderTop:'2px solid '+col.color}}>
+            <span class="kanban-head-title" style=${{color:col.color}}>${col.label}</span>
+            <span class="kanban-count">${byStatus[col.key].length}</span>
+          </div>
+          <div class="kanban-body">
+            ${byStatus[col.key].length === 0
+              ? html`<div style="font-family:var(--fm);font-size:10px;color:var(--text-dim);padding:8px 4px;text-align:center">Empty</div>`
+              : byStatus[col.key].map(p => html`
+                <div key=${p.id} class="kanban-card" onClick=${()=>onSelect(p.id)}>
+                  <div class="kc-name">${p.name.length>40?p.name.slice(0,40)+'…':p.name}</div>
+                  <div class="kc-univ">${p.university}</div>
+                  <div class="kc-meta">
+                    <span class=${'kc-dl '+dlCls(p.deadlineWinterParsed)}>${p.deadlineWinterParsed||'—'}</span>
+                    ${p.uniAssist?html`<span class="tag-ua">UA</span>`:''}
+                    ${p.motivationLetterGenerated?html`<span style="color:var(--green);font-size:10px">✉</span>`:''}
+                  </div>
+                </div>`)}
+          </div>
+        </div>`)}
+    </div>`;
+}
+
+// ── TableView ─────────────────────────────────────────────────────────────
+function TableView({ programs, onSelect }) {
+  if (!programs.length) return html`
+    <div class="empty">
+      <div class="empty-glyph">∅</div>
+      <p>No programs match your filters</p>
+    </div>`;
+  return html`
+    <div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Score</th><th>Status</th><th>Program</th>
+              <th>University</th><th>City</th><th>Deadline</th><th>Flags</th><th>✉</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${programs.map(p => html`
+              <tr key=${p.id} onClick=${()=>onSelect(p.id)}>
+                <td class="td-id td-first">${p.id}</td>
+                <td><${Score} score=${p.priorityScore} /></td>
+                <td><${Badge} status=${p.status} /></td>
+                <td class="td-name">
+                  ${p.name.length>36?p.name.slice(0,36)+'…':p.name}
+                  ${p.uniAssist?html`<span class="tag-ua">UA</span>`:''}
+                </td>
+                <td class="td-univ">${(p.university||'').slice(0,28)}</td>
+                <td class="td-mono" style="color:var(--text-dim)">${p.city||'—'}</td>
+                <td class=${'dl-cell td-mono '+dlCls(p.deadlineWinterParsed)}>${dlLabel(p.deadlineWinterParsed)}</td>
+                <td><${Flags} flags=${p.eligibilityFlags} /></td>
+                <td style="color:${p.motivationLetterGenerated?'var(--green)':'var(--text-dim)'}">
+                  ${p.motivationLetterGenerated?'✉':'○'}
+                </td>
+              </tr>`)}
+          </tbody>
+        </table>
+      </div>
+      <p class="row-count">${programs.length} program(s) shown</p>
+    </div>`;
+}
+
+// ── ProgramsTab ────────────────────────────────────────────────────────────
+function ProgramsTab({ onSelect }) {
+  const [all,     setAll]     = useState([]);
+  const [list,    setList]    = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [view,    setView]    = useState('table');
+  const [f, setF] = useState({ status:'', language:'', city:'', flag:'', search:'', sort:'deadline' });
+
+  useEffect(() => {
+    setLoading(true);
+    api('/api/programs')
+      .then(d => { setAll(d.programs); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    let l = [...all];
+    if (f.status)   l = l.filter(p => p.status === f.status);
+    if (f.language) l = l.filter(p => (p.language||'').toLowerCase().includes(f.language.toLowerCase()));
+    if (f.city)     l = l.filter(p => p.city === f.city);
+    if (f.flag)     l = l.filter(p => (p.eligibilityFlags||[]).includes(f.flag));
+    if (f.search) {
+      const q = f.search.toLowerCase();
+      l = l.filter(p => p.name.toLowerCase().includes(q)||(p.university||'').toLowerCase().includes(q)||(p.city||'').toLowerCase().includes(q));
+    }
+    if      (f.sort==='score')      l.sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0));
+    else if (f.sort==='name')       l.sort((a,b)=>a.name.localeCompare(b.name));
+    else if (f.sort==='university') l.sort((a,b)=>(a.university||'').localeCompare(b.university||''));
+    else l.sort((a,b) => !a.deadlineWinterParsed ? 1 : !b.deadlineWinterParsed ? -1 : a.deadlineWinterParsed.localeCompare(b.deadlineWinterParsed));
+    setList(l);
+  }, [all, f]);
+
+  return html`
+    <div>
+      <div class="page-head">
+        <h1>Programs</h1>
+        <span class="page-sub">${all.length} total</span>
+        ${loading?html`<span class="spin" style="color:var(--text-dim);margin-left:8px">↻</span>`:''}
+      </div>
+      <${FilterBar} f=${f} setF=${setF} all=${all} view=${view} setView=${setView} />
+      ${loading
+        ? html`<div class="empty"><span class="spin" style="font-size:28px;color:var(--text-dim)">↻</span></div>`
+        : view==='kanban'
+          ? html`<${KanbanView} programs=${list} onSelect=${onSelect} />`
+          : html`<${TableView} programs=${list} onSelect=${onSelect} />`}
+    </div>`;
+}
+
+// ── DetailPanel ────────────────────────────────────────────────────────────
+function DetailPanel({ programId, onClose, onSaved }) {
+  const [prog,    setProg]    = useState(null);
+  const [status,  setStatus]  = useState('');
+  const [notes,   setNotes]   = useState('');
+  const [saving,  setSaving]  = useState(false);
+  const [toast,   setToast]   = useState(null);
+  const [letter,  setLetter]  = useState(null);
+  const [loadingL,setLoadingL]= useState(false);
+  const [scraping,setScraping]= useState(false);
+
+  useEffect(() => {
+    if (!programId) return;
+    api(`/api/programs/${programId}`)
+      .then(d => { setProg(d.program); setStatus(d.program.status); setNotes(d.program.notes||''); setToast(null); setLetter(null); })
+      .catch(e => setToast({ type:'err', msg:e.message }));
+  }, [programId]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = {};
+      if (status !== prog.status) body.status = status;
+      if (notes !== (prog.notes||'')) body.notes = notes;
+      if (!Object.keys(body).length) { setToast({ type:'ok', msg:'No changes.' }); setSaving(false); return; }
+      const d = await api(`/api/programs/${programId}`, { method:'PATCH', body:JSON.stringify(body) });
+      setProg(d.program);
+      setToast({ type:'ok', msg:'Saved!' });
+      onSaved && onSaved(d.program);
+    } catch(e) { setToast({ type:'err', msg:e.message }); }
+    setSaving(false);
+  };
+
+  const runScrape = async () => {
+    setScraping(true);
+    setToast(null);
+    try {
+      const r = await api(`/api/programs/${programId}/scrape`, { method:'POST' });
+      setProg(r.program);
+      if (r.status === 'insufficient') {
+        setToast({ type:'err', msg:'Page had no admission info. Try editing accessLink.' });
+      } else {
+        const delta = r.newScore - r.oldScore;
+        const deltaStr = delta === 0 ? '±0' : (delta > 0 ? `+${delta}` : `${delta}`);
+        setToast({ type:'ok', msg:`Scraped! Score ${r.oldScore} → ${r.newScore} (${deltaStr})${r.deadlineChanged?' · deadline updated':''}` });
+      }
+      onSaved && onSaved(r.program);
+    } catch(e) { setToast({ type:'err', msg:'Scrape failed: '+e.message }); }
+    setScraping(false);
+  };
+
+  const loadLetter = async () => {
+    setLoadingL(true);
+    try { const d = await api(`/api/programs/${programId}/letter`); setLetter(d.content); }
+    catch(e) { setToast({ type:'err', msg:e.message }); }
+    setLoadingL(false);
+  };
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  if (!prog) return html`
+    <div class="overlay" onClick=${onClose}>
+      <div class="panel" onClick=${e=>e.stopPropagation()}>
+        <div class="empty"><span class="spin" style="font-size:24px;color:var(--text-dim)">↻</span></div>
+      </div>
+    </div>`;
+
+  return html`
+    <div class="overlay" onClick=${onClose}>
+      <div class="panel" onClick=${e=>e.stopPropagation()}>
+        <div class="panel-head">
+          <div class="panel-top">
+            <div>
+              <div class="panel-h2">${prog.name}${prog.uniAssist?html`<span class="tag-ua">UA</span>`:''}</div>
+              <div class="panel-univ">${prog.university}${prog.city?' · '+prog.city:''}</div>
+            </div>
+            <button class="close-btn" onClick=${onClose}>✕</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <${Badge} status=${prog.status} />
+            <${Score} score=${prog.priorityScore} />
+            ${prog.eligibilityFlags&&prog.eligibilityFlags.length?html`<${Flags} flags=${prog.eligibilityFlags} />`:null}
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="info-grid">
+            <div class="info-cell"><div class="ic-lbl">Degree</div><div class="ic-val">${prog.degree||'—'}</div></div>
+            <div class="info-cell"><div class="ic-lbl">Language</div><div class="ic-val">${prog.language||'—'}</div></div>
+            <div class="info-cell">
+              <div class="ic-lbl">Deadline</div>
+              <div class=${'ic-val dl-cell '+dlCls(prog.deadlineWinterParsed)}>${dlLabel(prog.deadlineWinterParsed)}</div>
+            </div>
+            <div class="info-cell"><div class="ic-lbl">Tuition</div><div class="ic-val">${prog.tuition||'—'}</div></div>
+            <div class="info-cell"><div class="ic-lbl">City</div><div class="ic-val">${prog.city||'—'}</div></div>
+            <div class="info-cell"><div class="ic-lbl">Duration</div><div class="ic-val">${prog.duration?prog.duration+' yr':'—'}</div></div>
+          </div>
+          ${(prog.website||prog.accessLink)&&html`
+            <div class="links-row">
+              ${prog.website&&html`<a class="ext-link" href=${prog.website} target="_blank" rel="noopener">↗ Website</a>`}
+              ${prog.accessLink&&prog.accessLink.startsWith('http')&&html`<a class="ext-link" href=${prog.accessLink} target="_blank" rel="noopener">↗ Apply</a>`}
+            </div>`}
+          <hr class="divider" />
+          <div class="p-section">
+            <div class="ps-lbl">Update Status</div>
+            <select class="p-select" value=${status} onChange=${e=>setStatus(e.target.value)}>
+              ${['not-yet','filling','pending','accepted','rejected','missed'].map(s=>html`<option key=${s} value=${s}>${s}</option>`)}
+            </select>
+          </div>
+          <div class="p-section">
+            <div class="ps-lbl">Notes</div>
+            <textarea class="p-textarea" rows="4" value=${notes} onInput=${e=>setNotes(e.target.value)} placeholder="Add notes…"></textarea>
+          </div>
+          ${toast&&html`<div class=${'toast-'+toast.type}>${toast.msg}</div>`}
+          <button class="save-btn" onClick=${save} disabled=${saving}>${saving?'Saving…':'Save Changes'}</button>
+          <hr class="divider" />
+          <div class="p-section">
+            <div class="ps-lbl">Admission Requirements</div>
+            ${(() => {
+              const req = prog.requirements;
+              if (!req || req.status === 'insufficient' && !(req.academic?.length || req.documents?.length || req.other?.length)) {
+                return html`
+                  <button class="scrape-btn" onClick=${runScrape} disabled=${scraping}>
+                    ${scraping ? html`<span class="spin">↻</span> Scraping…` : html`↓ Scrape Requirements`}
+                  </button>
+                  ${req && req.status === 'insufficient' && html`<div class="req-empty" style="margin-top:8px">Last scrape found no admission info.</div>`}`;
+              }
+              const groups = [
+                { k:'academic',  label:'Academic' },
+                { k:'documents', label:'Documents' },
+                { k:'other',     label:'Other' },
+              ];
+              const hasLang = req.language && (req.language.english || req.language.german);
+              const scrapedAt = req.scrapedAt ? new Date(req.scrapedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '';
+              return html`
+                <div class="req-meta">
+                  ${req.confidence && html`<span class=${'rm-chip conf-'+req.confidence}>${req.confidence} confidence</span>`}
+                  ${req.sourceType && html`<span class="rm-chip">${req.sourceType}</span>`}
+                  ${scrapedAt && html`<span>scraped ${scrapedAt}</span>`}
+                  ${req.source && html`<a class="rm-link" href=${req.source} target="_blank" rel="noopener">↗ source</a>`}
+                </div>
+                ${hasLang && html`
+                  <div class="req-group">
+                    <div class="rg-title">Language</div>
+                    <ul class="req-list">
+                      ${req.language.english && html`<li><strong>EN:</strong> ${req.language.english}</li>`}
+                      ${req.language.german  && html`<li><strong>DE:</strong> ${req.language.german}</li>`}
+                    </ul>
+                  </div>`}
+                ${groups.map(g => (req[g.k]?.length ? html`
+                  <div key=${g.k} class="req-group">
+                    <div class="rg-title">${g.label}</div>
+                    <ul class="req-list">
+                      ${req[g.k].map((item,i) => html`<li key=${i}>${item}</li>`)}
+                    </ul>
+                  </div>` : null))}
+                <button class="req-rescrape" onClick=${runScrape} disabled=${scraping}>
+                  ${scraping ? '↻ Re-scraping…' : '↻ Re-scrape'}
+                </button>`;
+            })()}
+          </div>
+          <hr class="divider" />
+          <div class="p-section">
+            <div class="ps-lbl">Motivation Letter</div>
+            ${prog.motivationLetterGenerated
+              ? html`
+                  ${!letter&&html`<button class="view-letter-btn" onClick=${loadLetter} disabled=${loadingL}>${loadingL?'Loading…':'↓ View Letter'}</button>`}
+                  ${letter&&html`<div class="letter-box">${letter}</div>`}`
+              : html`<p style="font-family:var(--fm);font-size:11px;color:var(--text-dim)">
+                  No letter yet. Run: <code style="color:var(--signal)">node src/index.js letter generate ${prog.id}</code>
+                </p>`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── ChecklistTab ───────────────────────────────────────────────────────────
+function ChecklistTab() {
+  const [cl,      setCl]      = useState({});
+  const [total,   setTotal]   = useState(0);
+  const [done,    setDone]    = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/checklist')
+      .then(d => { setCl(d.checklist); setTotal(d.total); setDone(d.done); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const toggle = async (id, val) => {
+    setCl(c => ({...c,[id]:{...c[id],done:val}}));
+    setDone(d => val?d+1:d-1);
+    try { await api(`/api/checklist/${id}`, { method:'PATCH', body:JSON.stringify({done:val}) }); }
+    catch { setCl(c => ({...c,[id]:{...c[id],done:!val}})); setDone(d => val?d-1:d+1); }
+  };
+
+  if (loading) return html`<div class="empty"><span class="spin" style="font-size:24px;color:var(--text-dim)">↻</span></div>`;
+  const pct = total ? Math.round(done/total*100) : 0;
+
+  return html`
+    <div>
+      <div class="page-head" style="margin-bottom:18px;padding-bottom:14px">
+        <h1>Checklist</h1>
+        <span class="page-sub" style=${{color:done===total?'var(--green)':'var(--text-dim)'}}>${done} / ${total} done</span>
+      </div>
+      <div class="cl-bar">
+        <div class="cl-fill" style=${{width:pct+'%',background:done===total?'var(--green)':'var(--signal)'}}></div>
+      </div>
+      ${Object.entries(cl).map(([id,item]) => html`
+        <div key=${id} class=${'cl-item '+(item.done?'done':'')} onClick=${()=>toggle(id,!item.done)}>
+          <input class="cl-cb" type="checkbox" checked=${item.done}
+            onChange=${e=>{e.stopPropagation();toggle(id,e.target.checked);}} />
+          <span class="cl-text">${item.label}</span>
+          ${item.done?html`<span class="cl-check-mark">✓</span>`:''}
+        </div>`)}
+      ${done===total&&total>0?html`<div class="cl-all-done">All Documents Ready ✓</div>`:''}
+    </div>`;
+}
+
+// ── TodayTab ───────────────────────────────────────────────────────────────
+function TodayTab({ onSelect }) {
+  const [plan,    setPlan]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
+
+  const reload = () => {
+    setLoading(true);
+    api('/api/plan/today')
+      .then(d => { setPlan(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(() => { reload(); }, []);
+
+  const markAllMissed = async () => {
+    if (!plan||!plan.overdue.length) return;
+    setMarking(true);
+    try {
+      await Promise.all(plan.overdue.map(p => api(`/api/programs/${p.id}`, { method:'PATCH', body:JSON.stringify({status:'missed'}) })));
+      reload();
+    } catch(e) { console.error(e); }
+    setMarking(false);
+  };
+
+  if (loading) return html`<div class="empty"><span class="spin" style="font-size:24px;color:var(--text-dim)">↻</span></div>`;
+  if (!plan) return html`<div class="empty"><p>Could not load plan.</p></div>`;
+
+  const { overdue, thisWeek, nextWeek, uniAssistUrgent, suggestedActions } = plan;
+  const allEmpty = !overdue.length && !thisWeek.length && !nextWeek.length && !uniAssistUrgent.length;
+
+  const PRow = ({ p, detail }) => html`
+    <div class="plan-row" onClick=${()=>onSelect(p.id)}>
+      <div class="pr-name">[${p.id}] ${p.name} <span style="color:var(--text-dim)">— ${(p.university||'').slice(0,28)}</span></div>
+      <div class="pr-detail">${detail}</div>
+    </div>`;
+
+  return html`
+    <div>
+      <div class="page-head" style="margin-bottom:24px;padding-bottom:14px">
+        <h1>Today</h1>
+        <span class="page-sub">${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
+      </div>
+      ${allEmpty&&html`<div class="empty"><div class="empty-glyph">OK</div><p>No urgent actions today</p></div>`}
+      ${overdue.length>0&&html`
+        <div class="plan-section ps-overdue">
+          <div class="ps-head">
+            <span class="ps-title">Overdue — Act Now (${overdue.length})</span>
+            <button class="mark-missed-btn" onClick=${markAllMissed} disabled=${marking}>
+              ${marking?'Marking…':'✕ Mark all Missed'}
+            </button>
+          </div>
+          ${overdue.map(p=>html`<${PRow} key=${p.id} p=${p} detail="Deadline passed · verify if still open or mark missed" />`)}
+        </div>`}
+      ${thisWeek.length>0&&html`
+        <div class="plan-section ps-thisweek">
+          <div class="ps-head"><span class="ps-title">Due This Week (${thisWeek.length})</span></div>
+          ${thisWeek.map(p=>html`<${PRow} key=${p.id} p=${p}
+            detail=${`Due ${p.deadlineWinterParsed} (${daysLeft(p.deadlineWinterParsed)}d) · Letter: ${p.motivationLetterGenerated?'✉ ready':'✖ missing'}`} />`)}
+        </div>`}
+      ${nextWeek.length>0&&html`
+        <div class="plan-section ps-nextweek">
+          <div class="ps-head"><span class="ps-title">Due Next Week (${nextWeek.length})</span></div>
+          ${nextWeek.map(p=>html`<${PRow} key=${p.id} p=${p}
+            detail=${`Due ${p.deadlineWinterParsed} (${daysLeft(p.deadlineWinterParsed)}d)`} />`)}
+        </div>`}
+      ${uniAssistUrgent.length>0&&html`
+        <div class="plan-section ps-ua">
+          <div class="ps-head"><span class="ps-title">Uni-Assist VPD Closing (${uniAssistUrgent.length})</span></div>
+          ${uniAssistUrgent.map(p=>html`<${PRow} key=${p.id} p=${p}
+            detail=${`Submit VPD by ${p.vpdDeadline} (${p.daysToVpd}d) · App deadline ${p.deadlineWinterParsed}`} />`)}
+        </div>`}
+      <div class="plan-section ps-actions">
+        <div class="ps-head"><span class="ps-title">Suggested Actions</span></div>
+        ${suggestedActions.map((a,i)=>html`
+          <div key=${i} class="action-item">
+            <span class="action-num">${a.priority}</span>
+            <span class="action-text">${a.text}</span>
+          </div>`)}
+      </div>
+    </div>`;
+}
+
+// ── App ────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,        setTab]        = useState('overview');
+  const [summary,    setSummary]    = useState(null);
+  const [deadlines,  setDeadlines]  = useState([]);
+  const [loading,    setLoading]    = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const pKey = useRef(0);
+
+  const fetchOverview = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [s, d] = await Promise.all([
+        api('/api/summary'),
+        api('/api/programs/deadlines?weeks=8'),
+      ]);
+      setSummary(s);
+      setDeadlines(d.deadlines);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchOverview(); }, []);
+  useEffect(() => { const t = setInterval(fetchOverview, 30000); return () => clearInterval(t); }, []);
+
+  const handleSaved = useCallback(() => { fetchOverview(); pKey.current++; }, [fetchOverview]);
+  const openProgram = id => { setSelectedId(id); setTab('programs'); };
+
+  return html`
+    <div id="app">
+      <${Sidebar} tab=${tab} setTab=${setTab} loading=${loading} onRefresh=${fetchOverview} />
+      <div class="main">
+        ${summary && summary.urgentDeadlines14 > 0 && html`
+          <div class="alert-banner">
+            <span class="ab-dot"></span>
+            <span class="ab-text"><strong>${summary.urgentDeadlines14} deadline(s)</strong> due within 14 days</span>
+            <button class="ab-cta" onClick=${()=>setTab('today')}>Review Plan →</button>
+          </div>`}
+        <div class="content">
+          ${tab==='overview'  && html`<${OverviewTab}  summary=${summary} deadlines=${deadlines} onTab=${setTab} />`}
+          ${tab==='programs'  && html`<${ProgramsTab}  key=${pKey.current} onSelect=${setSelectedId} />`}
+          ${tab==='checklist' && html`<${ChecklistTab} />`}
+          ${tab==='today'     && html`<${TodayTab} onSelect=${openProgram} />`}
+        </div>
+      </div>
+      ${selectedId !== null && html`
+        <${DetailPanel}
+          programId=${selectedId}
+          onClose=${()=>setSelectedId(null)}
+          onSaved=${handleSaved}
+        />`}
+    </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+</script>
+</body>
+</html>
