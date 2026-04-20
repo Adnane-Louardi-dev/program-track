@@ -1212,7 +1212,7 @@ function FilterBar({ f, setF, all, view, setView }) {
   const langs  = [...new Set(all.map(p=>p.language).filter(Boolean))].sort();
   const set = k => e => setF(prev => ({...prev,[k]:e.target.value}));
   const chip = (k,v) => setF(prev => ({...prev,[k]:prev[k]===v?'':v}));
-  const clear = () => setF({ status:'',language:'',city:'',flag:'',search:'',sort:'deadline' });
+  const clear = () => setF({ status:'',language:'',city:'',flag:'',search:'',sort:'deadline',uniassist:false });
   return html`
     <div class="filter-wrap">
       <div class="filter-row">
@@ -1243,6 +1243,8 @@ function FilterBar({ f, setF, all, view, setView }) {
         <span class="chip-sep">|</span>
         ${[{v:'STRONG_FIT',l:'Strong Fit'},{v:'ECTS_GAP',l:'ECTS Gap'},{v:'GERMAN_REQUIRED',l:'DE Only'},{v:'GPA_RISK',l:'GPA Risk'}].map(({v,l})=>html`
           <button key=${v} class=${'chip '+(f.flag===v?'active':'')} onClick=${()=>chip('flag',v)}>${l}</button>`)}
+        <span class="chip-sep">|</span>
+        <button class=${'chip '+(f.uniassist?'active':'')} style=${f.uniassist?'border-color:var(--purple);color:var(--purple);background:var(--purple-dim)':''} onClick=${()=>setF(prev=>({...prev,uniassist:!prev.uniassist}))}>⬡ Uni-Assist</button>
       </div>
     </div>`;
 }
@@ -1374,7 +1376,7 @@ function ProgramsTab({ onSelect }) {
   const [list,    setList]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [view,    setView]    = useState('table');
-  const [f, setF] = useState({ status:'', language:'', city:'', flag:'', search:'', sort:'deadline' });
+  const [f, setF] = useState({ status:'', language:'', city:'', flag:'', search:'', sort:'deadline', uniassist: false });
 
   useEffect(() => {
     setLoading(true);
@@ -1389,6 +1391,7 @@ function ProgramsTab({ onSelect }) {
     if (f.language) l = l.filter(p => (p.language||'').toLowerCase().includes(f.language.toLowerCase()));
     if (f.city)     l = l.filter(p => p.city === f.city);
     if (f.flag)     l = l.filter(p => (p.eligibilityFlags||[]).includes(f.flag));
+    if (f.uniassist) l = l.filter(p => p.uniAssist);
     if (f.search) {
       const q = f.search.toLowerCase();
       l = l.filter(p => p.name.toLowerCase().includes(q)||(p.university||'').toLowerCase().includes(q)||(p.city||'').toLowerCase().includes(q));

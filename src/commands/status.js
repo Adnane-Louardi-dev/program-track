@@ -205,6 +205,7 @@ async function runDeadlines(opts) {
     .filter((p) => {
       if (skip.has(p.status)) return false;
       if (!p.deadlineWinterParsed) return false;
+      if (opts.uniassist && !p.uniAssist) return false;
       const d = new Date(p.deadlineWinterParsed);
       return d >= today && d <= cutoff;
     })
@@ -248,6 +249,102 @@ async function runDeadlines(opts) {
     console.log(chalk.yellow(`\n  ${missing} program(s) still need a motivation letter.`));
     console.log(chalk.dim('  Run: node src/index.js letter batch --deadline-within=' + (weeks * 7)));
   }
+  console.log();
+}
+
+// ── status uni-assist ─────────────────────────────────────────────────────
+
+async function runUniAssist(opts) {
+  const programs = requirePrograms();
+  const uaPrograms = programs.filter((p) => p.uniAssist);
+
+  if (uaPrograms.length === 0) {
+    console.log(chalk.yellow('\n  No Uni-Assist programs found.\n'));
+    return;
+  }
+
+  // Status breakdown
+  const count = (pred) => uaPrograms.filter(pred).length;
+  const notYet  = count((p) => p.status === 'not-yet');
+  const filling = count((p) => p.status === 'filling');
+  const pending = count((p) => p.status === 'pending');
+  const accepted = count((p) => p.status === 'accepted');
+  const missed  = count((p) => p.status === 'missed');
+  const rejected = count((p) => p.status === 'rejected');
+  const letters = count((p) => p.motivationLetterGenerated);
+
+  printBox('Uni-Assist Programs', [
+    `Total requiring Uni-Assist:  ${chalk.magenta.bold(uaPrograms.length)}`,
+    chalk.dim('─'.repeat(44)),
+    `Not yet started:             ${chalk.white(notYet)}`,
+    `Currently filling:           ${chalk.yellow(filling)}`,
+    `Pending decision:            ${chalk.cyan(pending)}`,
+    `Accepted:                    ${chalk.green(accepted)}`,
+    `Missed:                      ${chalk.red.dim(missed)}`,
+    `Rejected:                    ${chalk.red(rejected)}`,
+    chalk.dim('─'.repeat(44)),
+    `Letters generated:           ${letters === 0 ? chalk.red(letters) : chalk.green(letters)} / ${uaPrograms.length}`,
+    chalk.dim('─'.repeat(44)),
+    chalk.dim('Note: Uni-Assist programs require VPD + extra fees'),
+  ], { color: 'magenta' });
+
+  // Optional status filter
+  let list = [...uaPrograms];
+  if (opts.filter) {
+    const f = opts.filter.toLowerCase();
+    list = list.filter((p) => p.status === f);
+  }
+
+  const sort = opts.sort ?? 'deadline';
+  if (sort === 'deadline') {
+    list.sort((a, b) => {
+      if (!a.deadlineWinterParsed) return 1;
+      if (!b.deadlineWinterParsed) return -1;
+      return a.deadlineWinterParsed.localeCompare(b.deadlineWinterParsed);
+    });
+  } else if (sort === 'priority') {
+    list.sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
+  } else if (sort === 'name') {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  if (list.length === 0) {
+    console.log(chalk.yellow('  No programs match the current filters.'));
+    return;
+  }
+
+  const label = opts.filter
+    ? `Uni-Assist — ${opts.filter} (${list.length})`
+    : `All Uni-Assist Programs (${list.length})`;
+  console.log();
+  printHeader(label);
+  console.log();
+
+  const table = makeTable(
+    ['ID', '★', 'Status', 'Program', 'University', 'City', 'Deadline', 'Letter'],
+    [5, 5, 10, 28, 26, 12, 20, 8],
+  );
+
+  list.forEach((p) => {
+    const letter = p.motivationLetterGenerated ? chalk.green('✉ done') : chalk.red('✖ miss');
+    table.push([
+      chalk.dim(String(p.id)),
+      priorityStars(p.priorityScore),
+      colorStatus(p.status),
+      p.name.slice(0, 26),
+      p.university.slice(0, 24),
+      (p.city || '—').slice(0, 10),
+      colorDeadline(p.deadlineWinterParsed),
+      letter,
+    ]);
+  });
+
+  console.log(table.toString());
+  console.log(chalk.dim(`\n  ${list.length} Uni-Assist program(s) shown`));
+  if (opts.filter) {
+    console.log(chalk.dim(`  Filtered by status: ${opts.filter}`));
+  }
+  console.log(chalk.dim('  Tip: run with --filter <status> to narrow down (e.g. --filter filling)'));
   console.log();
 }
 
@@ -320,7 +417,15 @@ export function registerStatus(program) {
     .command('deadlines')
     .description('Show upcoming deadlines sorted by urgency')
     .option('--weeks <n>', 'Look-ahead window in weeks (default: 4)', '4')
+    .option('--uniassist', 'Show only Uni-Assist programs')
     .action((opts) => runDeadlines(opts));
+
+  cmd
+    .command('uni-assist')
+    .description('Show all Uni-Assist programs with status breakdown')
+    .option('--filter <status>', `Filter by status (${VALID_STATUSES.join('|')})`)
+    .option('--sort <key>', 'Sort by: deadline (default) | priority | name')
+    .action((opts) => runUniAssist(opts));
 
   cmd
     .command('export')
