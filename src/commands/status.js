@@ -15,7 +15,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../../');
 
-const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed'];
+const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed', 'impossible'];
 
 // ── status list ───────────────────────────────────────────────────────────
 
@@ -152,6 +152,7 @@ async function runSummary() {
   const accepted   = count((p) => p.status === 'accepted');
   const missed     = count((p) => p.status === 'missed');
   const rejected   = count((p) => p.status === 'rejected');
+  const impossible = count((p) => p.status === 'impossible');
   const uniAssist  = count((p) => p.uniAssist);
   const letters    = count((p) => p.motivationLetterGenerated);
   const high       = count((p) => p.priorityScore >= 70);
@@ -162,7 +163,7 @@ async function runSummary() {
   const today = new Date();
   const in14  = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
   const urgent = programs.filter((p) => {
-    if (['missed', 'accepted', 'rejected'].includes(p.status)) return false;
+    if (['missed', 'accepted', 'rejected', 'impossible'].includes(p.status)) return false;
     if (!p.deadlineWinterParsed) return false;
     const d = new Date(p.deadlineWinterParsed);
     return d >= today && d <= in14;
@@ -176,6 +177,7 @@ async function runSummary() {
     `Accepted:                    ${chalk.green(accepted)}`,
     `Missed:                      ${chalk.red.dim(missed)}`,
     `Rejected:                    ${chalk.red(rejected)}`,
+    `Impossible:                  ${chalk.gray(impossible)}`,
     chalk.dim('─'.repeat(44)),
     `Uni-Assist programs:         ${chalk.magenta(uniAssist)}  ${chalk.dim('(need VPD)')}`,
     `Letters generated:           ${letters === 0 ? chalk.red(letters) : chalk.green(letters)} / ${total}`,
@@ -200,7 +202,7 @@ async function runDeadlines(opts) {
   const today = new Date();
   const cutoff = new Date(today.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
 
-  const skip = new Set(['missed', 'accepted', 'rejected']);
+  const skip = new Set(['missed', 'accepted', 'rejected', 'impossible']);
   const list = programs
     .filter((p) => {
       if (skip.has(p.status)) return false;
@@ -271,6 +273,7 @@ async function runUniAssist(opts) {
   const accepted = count((p) => p.status === 'accepted');
   const missed  = count((p) => p.status === 'missed');
   const rejected = count((p) => p.status === 'rejected');
+  const impossible = count((p) => p.status === 'impossible');
   const letters = count((p) => p.motivationLetterGenerated);
 
   printBox('Uni-Assist Programs', [
@@ -282,6 +285,7 @@ async function runUniAssist(opts) {
     `Accepted:                    ${chalk.green(accepted)}`,
     `Missed:                      ${chalk.red.dim(missed)}`,
     `Rejected:                    ${chalk.red(rejected)}`,
+    `Impossible:                  ${chalk.gray(impossible)}`,
     chalk.dim('─'.repeat(44)),
     `Letters generated:           ${letters === 0 ? chalk.red(letters) : chalk.green(letters)} / ${uaPrograms.length}`,
     chalk.dim('─'.repeat(44)),

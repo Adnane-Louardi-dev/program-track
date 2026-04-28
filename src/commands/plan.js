@@ -28,7 +28,7 @@ function fmtShort(isoDate) {
 
 /** Programs that are still actionable (not done). */
 function actionable(programs) {
-  const done = new Set(['accepted', 'rejected', 'missed']);
+  const done = new Set(['accepted', 'rejected', 'missed', 'impossible']);
   return programs.filter((p) => !done.has(p.status) && p.deadlineWinterParsed);
 }
 

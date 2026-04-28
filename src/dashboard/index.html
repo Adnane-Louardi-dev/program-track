@@ -552,6 +552,7 @@
     .badge-accepted { background: var(--green-dim);   color: var(--green); }
     .badge-rejected { background: var(--red-dim);     color: var(--red); }
     .badge-missed   { background: rgba(255,61,61,0.05); color: #7f1d1d; }
+    .badge-impossible { background: rgba(100,116,139,0.2); color: #475569; }
 
     /* ── Flags ── */
     .flag {
@@ -1101,6 +1102,7 @@ function PipelineBar({ s }) {
     { key:'accepted', color:'#00C853', label:'Accepted' },
     { key:'rejected', color:'#FF3D3D', label:'Rejected' },
     { key:'missed',   color:'#3d1010', label:'Missed'   },
+    { key:'impossible', color:'#475569', label:'Impossible' },
   ].filter(s => (byStatus[s.key]||0) > 0);
   return html`
     <div class="pipeline">
@@ -1238,7 +1240,7 @@ function FilterBar({ f, setF, all, view, setView }) {
         </div>
       </div>
       <div class="chip-row">
-        ${['not-yet','filling','pending','accepted','rejected','missed'].map(s=>html`
+        ${['not-yet','filling','pending','accepted','rejected','missed','impossible'].map(s=>html`
           <button key=${s} class=${'chip '+(f.status===s?'active':'')} onClick=${()=>chip('status',s)}>${s}</button>`)}
         <span class="chip-sep">|</span>
         ${[{v:'STRONG_FIT',l:'Strong Fit'},{v:'ECTS_GAP',l:'ECTS Gap'},{v:'GERMAN_REQUIRED',l:'DE Only'},{v:'GPA_RISK',l:'GPA Risk'}].map(({v,l})=>html`
@@ -1262,6 +1264,7 @@ function KanbanView({ programs, onSelect, onStatusChange }) {
     { key:'accepted', label:'Accepted', color:'var(--green)' },
     { key:'rejected', label:'Rejected', color:'var(--red)' },
     { key:'missed',   label:'Missed',   color:'#7f1d1d' },
+    { key:'impossible', label:'Impossible', color:'#475569' },
   ];
   const byStatus = {};
   cols.forEach(c => { byStatus[c.key] = programs.filter(p => p.status === c.key); });
@@ -1639,7 +1642,7 @@ function DetailPanel({ programId, onClose, onSaved }) {
           <div class="p-section">
             <div class="ps-lbl">Update Status</div>
             <select class="p-select" value=${status} onChange=${e=>setStatus(e.target.value)}>
-              ${['not-yet','filling','pending','accepted','rejected','missed'].map(s=>html`<option key=${s} value=${s}>${s}</option>`)}
+              ${['not-yet','filling','pending','accepted','rejected','missed','impossible'].map(s=>html`<option key=${s} value=${s}>${s}</option>`)}
             </select>
           </div>
           <div class="p-section">

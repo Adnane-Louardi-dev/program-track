@@ -52,6 +52,7 @@ const STATUS_COLOR = {
   'accepted': chalk.green,
   'rejected': chalk.red,
   'missed':   chalk.red.dim,
+  'impossible': chalk.gray,
 };
 
 export function colorStatus(status) {

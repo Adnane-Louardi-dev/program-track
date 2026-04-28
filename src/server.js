@@ -12,7 +12,7 @@ import { scrapeProgram } from './lib/scraper.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const _require = createRequire(import.meta.url);
-const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed'];
+const VALID_STATUSES = ['not-yet', 'filling', 'pending', 'accepted', 'rejected', 'missed', 'impossible'];
 
 function daysUntil(isoDate) {
   const today = new Date();
@@ -73,7 +73,7 @@ export function createApp() {
       const weeks = Number(req.query.weeks || 8);
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const cutoff = new Date(today.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
-      const skip = new Set(['missed', 'accepted', 'rejected']);
+      const skip = new Set(['missed', 'accepted', 'rejected', 'impossible']);
       const deadlines = programs
         .filter(p => {
           if (skip.has(p.status) || !p.deadlineWinterParsed) return false;
@@ -176,7 +176,7 @@ export function createApp() {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const in7  = new Date(today.getTime() + 7  * 24 * 60 * 60 * 1000);
       const in14 = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-      const skip = new Set(['missed', 'accepted', 'rejected']);
+      const skip = new Set(['missed', 'accepted', 'rejected', 'impossible']);
       const count = pred => programs.filter(pred).length;
       res.json({
         total: programs.length,
@@ -186,7 +186,8 @@ export function createApp() {
           'pending':  count(p => p.status === 'pending'),
           'accepted': count(p => p.status === 'accepted'),
           'rejected': count(p => p.status === 'rejected'),
-          'missed':   count(p => p.status === 'missed')
+          'missed':   count(p => p.status === 'missed'),
+          'impossible': count(p => p.status === 'impossible')
         },
         lettersGenerated:  count(p => p.motivationLetterGenerated),
         highPriority:      count(p => (p.priorityScore || 0) >= 70),
@@ -233,7 +234,7 @@ export function createApp() {
       const programs = loadPrograms();
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const DAY_MS = 24 * 60 * 60 * 1000;
-      const skip = new Set(['accepted', 'rejected', 'missed']);
+      const skip = new Set(['accepted', 'rejected', 'missed', 'impossible']);
       const actionable = programs.filter(p => !skip.has(p.status) && p.deadlineWinterParsed);
       const overdue = programs.filter(p => {
         if (skip.has(p.status) || !p.deadlineWinterParsed) return false;
